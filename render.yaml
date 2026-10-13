@@ -1,0 +1,70 @@
+services:
+  - type: web
+    name: amira-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: APP_URL
+        fromService:
+          type: web
+          property: url
+      - key: ENCRYPTION_SALT
+        scope: run
+      - key: STRIPE_KEY
+        scope: run
+      - key: STRIPE_WEBHOOK_SECRET
+        scope: run
+      - key: STRIPE_PUBLISHABLE_KEY
+        scope: run
+      - key: SUPABASE_URL
+        scope: run
+      - key: SUPABASE_KEY
+        scope: run
+      - key: SUPABASE_JWT_SECRET
+        scope: run
+      - key: N8N_URL
+        scope: run
+      - key: N8N_API_KEY
+        scope: run
+      - key: TWILIO_ACCOUNT_SID
+        scope: run
+      - key: TWILIO_AUTH_TOKEN
+        scope: run
+      - key: TWILIO_FROM_VOICE
+        value: "+19187237690"
+      - key: TWILIO_FROM_WHATSAPP
+        value: "whatsapp:+14155238886"
+      - key: CLAUDE_API_KEY
+        scope: run
+      - key: GOOGLE_CLIENT_ID
+        scope: run
+      - key: GOOGLE_CLIENT_SECRET
+        scope: run
+      - key: GOOGLE_REDIRECT_URI
+        fromService:
+          type: web
+          property: url
+        value: "/api/oauth/callback/google"
+      - key: HUBSPOT_CLIENT_ID
+        scope: run
+      - key: HUBSPOT_CLIENT_SECRET
+        scope: run
+      - key: HUBSPOT_REDIRECT_URI
+        fromService:
+          type: web
+          property: url
+        value: "/api/oauth/callback/hubspot"
+      - key: CORS_ORIGINS
+        value: "https://amiraconsulting.services"
+      - key: LOG_LEVEL
+        value: info
+
+databases:
+  - name: amira-db
+    plan: free
