@@ -1,0 +1,62 @@
+{
+  "name": "aris-platform-saas",
+  "version": "1.0.0",
+  "description": "Multi-tenant SaaS platform for AI consultant bots",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "watch": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write src",
+    "type-check": "tsc --noEmit",
+    "webhook-test": "ts-node scripts/test-webhook.ts"
+  },
+  "keywords": [
+    "saas",
+    "n8n",
+    "stripe",
+    "supabase",
+    "multi-tenant",
+    "express",
+    "typescript"
+  ],
+  "author": "ARIS Consulting",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "stripe": "^14.1.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "express-rate-limit": "^7.1.5",
+    "axios": "^1.6.0",
+    "jsonwebtoken": "^9.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/express": "^4.17.20",
+    "@types/node": "^20.10.0",
+    "@types/jest": "^29.5.8",
+    "@types/morgan": "^1.9.7",
+    "@types/jsonwebtoken": "^9.0.2",
+    "ts-node": "^10.9.1",
+    "nodemon": "^3.0.1",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
