@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: amira-backend
+    name: amira-aris-backend
     runtime: node
-    plan: free
+    plan: standard
     buildCommand: npm install && npm run build
     startCommand: node dist/index.js
     envVars:
@@ -18,18 +18,28 @@ services:
         scope: run
       - key: STRIPE_KEY
         scope: run
+        value: sk_test_placeholder
       - key: STRIPE_WEBHOOK_SECRET
         scope: run
+        value: whsec_test_placeholder
       - key: STRIPE_PUBLISHABLE_KEY
         scope: run
+        value: pk_test_placeholder
+      - key: STRIPE_PRICE_SOLO
+        value: price_1234567890
+      - key: STRIPE_PRICE_PRO
+        value: price_0987654321
+      - key: STRIPE_PRICE_ENTERPRISE
+        value: price_5555555555
       - key: SUPABASE_URL
         scope: run
+        value: https://diryethqkgdweamujrdu.supabase.co
       - key: SUPABASE_KEY
         scope: run
       - key: SUPABASE_JWT_SECRET
         scope: run
       - key: N8N_URL
-        scope: run
+        value: https://arisconsulting.app.n8n.cloud
       - key: N8N_API_KEY
         scope: run
       - key: TWILIO_ACCOUNT_SID
@@ -61,10 +71,12 @@ services:
           property: url
         value: "/api/oauth/callback/hubspot"
       - key: CORS_ORIGINS
-        value: "https://amiraconsulting.services"
+        value: "https://amiraconsulting.services,http://localhost:3000"
+      - key: CORS_CREDENTIALS
+        value: "true"
       - key: LOG_LEVEL
         value: info
-
-databases:
-  - name: amira-db
-    plan: free
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"

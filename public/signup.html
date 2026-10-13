@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - ARIS Consulting Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="tel"]:focus,
+        input[type="password"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .tier-selection {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tier-option {
+            cursor: pointer;
+        }
+
+        .tier-radio {
+            display: none;
+        }
+
+        .tier-label {
+            display: block;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .tier-label:hover {
+            border-color: #667eea;
+            background-color: #f9f9f9;
+        }
+
+        .tier-radio:checked + .tier-label {
+            border-color: #667eea;
+            background-color: #f0f4ff;
+            font-weight: 600;
+        }
+
+        .tier-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .tier-price {
+            color: #667eea;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .button-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .button-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .button-secondary:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            color: #27ae60;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            .tier-selection {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Create Account</h1>
+            <p>Start your free trial or select a plan</p>
+        </div>
+
+        <form id="signupForm">
+            <div class="form-group">
+                <label for="fullName">Full Name *</label>
+                <input type="text" id="fullName" name="fullName" required placeholder="John Doe">
+                <div class="error-message" id="fullNameError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" required placeholder="john@example.com">
+                <div class="error-message" id="emailError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number *</label>
+                <input type="tel" id="phone" name="phone" required placeholder="+1 (555) 000-0000">
+                <div class="error-message" id="phoneError"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" name="password" required placeholder="At least 8 characters">
+                <div class="error-message" id="passwordError"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Select Plan *</label>
+                <div class="tier-selection">
+                    <div class="tier-option">
+                        <input type="radio" id="free" name="tier" value="free" class="tier-radio" checked>
+                        <label for="free" class="tier-label">
+                            <div class="tier-name">Free</div>
+                            <div class="tier-price">$0/month</div>
+                        </label>
+                    </div>
+
+                    <div class="tier-option">
+                        <input type="radio" id="starter" name="tier" value="starter" class="tier-radio">
+                        <label for="starter" class="tier-label">
+                            <div class="tier-name">Starter</div>
+                            <div class="tier-price">$49.99/mo</div>
+                        </label>
+                    </div>
+
+                    <div class="tier-option">
+                        <input type="radio" id="professional" name="tier" value="professional" class="tier-radio">
+                        <label for="professional" class="tier-label">
+                            <div class="tier-name">Pro</div>
+                            <div class="tier-price">$99.99/mo</div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tierDescription" style="background: #f9f9f9; padding: 15px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; color: #666; display: none;">
+                <strong>Free Plan:</strong> Perfect for getting started. 1 consultant, up to 5 clients.
+            </div>
+
+            <div class="button-group" id="buttonGroup">
+                <button type="button" class="button button-secondary" id="backButton" style="display: none;">Back</button>
+                <button type="submit" class="button button-primary" id="submitButton">Create Account</button>
+            </div>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #666;">Processing...</p>
+            </div>
+
+            <div class="error-message" id="formError" style="margin-top: 15px;"></div>
+            <div class="success-message" id="formSuccess" style="margin-top: 15px;"></div>
+        </form>
+
+        <div class="footer">
+            Already have an account? <a href="/login.html">Sign in</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('signupForm');
+        const tierRadios = document.querySelectorAll('input[name="tier"]');
+        const tierDescription = document.getElementById('tierDescription');
+        const submitButton = document.getElementById('submitButton');
+        const loading = document.getElementById('loading');
+        const formError = document.getElementById('formError');
+        const formSuccess = document.getElementById('formSuccess');
+
+        // Update tier description
+        tierRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const descriptions = {
+                    free: 'Perfect for getting started. 1 consultant, up to 5 clients.',
+                    starter: 'Great for small teams. 2 consultants, unlimited clients.',
+                    professional: 'Ideal for growing businesses. 3 consultants, unlimited clients, advanced analytics.'
+                };
+
+                tierDescription.textContent = descriptions[radio.value] || '';
+                tierDescription.style.display = 'block';
+            });
+        });
+
+        // Show tier description on load
+        document.getElementById('free').dispatchEvent(new Event('change'));
+
+        // Form validation
+        function validateForm() {
+            let isValid = true;
+
+            // Full Name
+            const fullName = document.getElementById('fullName').value.trim();
+            const fullNameError = document.getElementById('fullNameError');
+            if (!fullName || fullName.length < 2) {
+                fullNameError.textContent = 'Please enter a valid name';
+                fullNameError.classList.add('show');
+                isValid = false;
+            } else {
+                fullNameError.classList.remove('show');
+            }
+
+            // Email
+            const email = document.getElementById('email').value.trim();
+            const emailError = document.getElementById('emailError');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                emailError.textContent = 'Please enter a valid email address';
+                emailError.classList.add('show');
+                isValid = false;
+            } else {
+                emailError.classList.remove('show');
+            }
+
+            // Phone
+            const phone = document.getElementById('phone').value.trim();
+            const phoneError = document.getElementById('phoneError');
+            if (!phone || phone.length < 10) {
+                phoneError.textContent = 'Please enter a valid phone number';
+                phoneError.classList.add('show');
+                isValid = false;
+            } else {
+                phoneError.classList.remove('show');
+            }
+
+            // Password
+            const password = document.getElementById('password').value;
+            const passwordError = document.getElementById('passwordError');
+            if (!password || password.length < 8) {
+                passwordError.textContent = 'Password must be at least 8 characters';
+                passwordError.classList.add('show');
+                isValid = false;
+            } else {
+                passwordError.classList.remove('show');
+            }
+
+            return isValid;
+        }
+
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            const tier = document.querySelector('input[name="tier"]:checked').value;
+
+            // If free tier, show success message and redirect
+            if (tier === 'free') {
+                try {
+                    submitButton.disabled = true;
+                    loading.classList.add('show');
+                    formError.classList.remove('show');
+
+                    // Create customer in database
+                    const response = await fetch('/api/payment/create-customer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: document.getElementById('fullName').value,
+                            email: document.getElementById('email').value,
+                            phone: document.getElementById('phone').value,
+                            tier: 'free',
+                            password: document.getElementById('password').value
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to create account');
+                    }
+
+                    const data = await response.json();
+                    formSuccess.textContent = 'Account created successfully! Redirecting...';
+                    formSuccess.classList.add('show');
+
+                    setTimeout(() => {
+                        window.location.href = '/success.html?customerId=' + data.customer_id;
+                    }, 1500);
+                } catch (error) {
+                    loading.classList.remove('show');
+                    submitButton.disabled = false;
+                    formError.textContent = error.message || 'Failed to create account. Please try again.';
+                    formError.classList.add('show');
+                }
+            } else {
+                // Redirect to payment page with tier and form data
+                const params = new URLSearchParams({
+                    tier: tier,
+                    name: document.getElementById('fullName').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    password: document.getElementById('password').value
+                });
+
+                window.location.href = '/payment.html?' + params.toString();
+            }
+        });
+    </script>
+</body>
+</html>

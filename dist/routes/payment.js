@@ -3,11 +3,174 @@
  * Payment Routes - Handle Stripe payment processing
  * Endpoints: POST /api/payment/create-subscription, POST /api/webhooks/stripe
  */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const crypto_1 = require("crypto");
+const stripe_1 = __importDefault(require("stripe"));
 const stripe_service_1 = require("../services/stripe.service");
 const errors_1 = require("../utils/errors");
+const supabase_js_1 = require("@supabase/supabase-js");
+const config_1 = require("../config");
 const router = (0, express_1.Router)();
+const supabase = (0, supabase_js_1.createClient)(config_1.config.supabase.url, config_1.config.supabase.key);
+const stripe = new stripe_1.default(config_1.config.stripe.apiKey, {
+    apiVersion: '2023-10-16',
+});
+// ============ GET CONFIG ENDPOINT ============
+/**
+ * GET /api/payment/config
+ * Get payment configuration (Stripe publishable key)
+ */
+router.get('/config', (0, errors_1.asyncHandler)(async (req, res) => {
+    res.json({
+        success: true,
+        data: {
+            publishable_key: config_1.config.stripe.publishableKey,
+            environment: config_1.config.server.env,
+        },
+    });
+}));
+// ============ CREATE CUSTOMER ENDPOINT ============
+/**
+ * POST /api/payment/create-customer
+ * Create a customer record in the database
+ */
+router.post('/create-customer', (0, errors_1.asyncHandler)(async (req, res) => {
+    const { name, email, phone, tier = 'free', password } = req.body;
+    // ============ INPUT VALIDATION ============
+    if (!name || !email || !phone) {
+        throw errors_1.ErrorFactory.validationError('Name, email, and phone are required');
+    }
+    if (!errors_1.Validators.email(email)) {
+        throw errors_1.ErrorFactory.validationError('Invalid email format');
+    }
+    const customerId = (0, crypto_1.randomUUID)();
+    try {
+        // Create customer record in database
+        const { data: customer, error } = await supabase
+            .from('customers')
+            .insert({
+            id: customerId,
+            name,
+            email,
+            phone,
+            tier,
+            status: 'active',
+            created_at: new Date().toISOString(),
+        })
+            .select()
+            .single();
+        if (error) {
+            throw errors_1.ErrorFactory.databaseError(error);
+        }
+        console.log(`✅ Customer created: ${customerId}`);
+        res.json({
+            success: true,
+            data: {
+                customer_id: customerId,
+                name: customer.name,
+                email: customer.email,
+                tier: customer.tier,
+                status: customer.status,
+            },
+        });
+    }
+    catch (error) {
+        if (error instanceof Error && 'code' in error && error.code === 'UNIQUE_VIOLATION') {
+            throw errors_1.ErrorFactory.validationError('Customer with this email already exists');
+        }
+        throw error;
+    }
+}));
+// ============ GET CUSTOMER ENDPOINT ============
+/**
+ * GET /api/payment/customer/:customer_id
+ * Get customer details
+ */
+router.get('/customer/:customer_id', (0, errors_1.asyncHandler)(async (req, res) => {
+    const { customer_id } = req.params;
+    if (!errors_1.Validators.uuid(customer_id)) {
+        throw errors_1.ErrorFactory.validationError('Invalid customer ID format');
+    }
+    const { data: customer, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', customer_id)
+        .single();
+    if (error || !customer) {
+        throw errors_1.ErrorFactory.notFound('Customer not found');
+    }
+    res.json({
+        success: true,
+        data: customer,
+    });
+}));
+// ============ CREATE PAYMENT INTENT ENDPOINT ============
+/**
+ * POST /api/payment/create-payment-intent
+ * Create a Stripe payment intent for one-time or subscription payment
+ */
+router.post('/create-payment-intent', (0, errors_1.asyncHandler)(async (req, res) => {
+    const { customer_id, tier, amount } = req.body;
+    if (!customer_id || !errors_1.Validators.uuid(customer_id)) {
+        throw errors_1.ErrorFactory.validationError('Valid customer ID is required');
+    }
+    if (!tier || !['starter', 'professional', 'advanced'].includes(tier)) {
+        throw errors_1.ErrorFactory.validationError('Valid tier is required');
+    }
+    if (!amount || amount <= 0) {
+        throw errors_1.ErrorFactory.validationError('Valid amount is required');
+    }
+    try {
+        // Get customer details
+        const { data: customer } = await supabase
+            .from('customers')
+            .select('*')
+            .eq('id', customer_id)
+            .single();
+        if (!customer) {
+            throw errors_1.ErrorFactory.notFound('Customer not found');
+        }
+        // Create or get Stripe customer
+        let stripeCustomerId = customer.stripe_customer_id;
+        if (!stripeCustomerId) {
+            stripeCustomerId = await stripe_service_1.StripeService.createCustomer(customer.email, customer.name, customer_id);
+            // Update customer record with Stripe ID
+            await supabase
+                .from('customers')
+                .update({ stripe_customer_id: stripeCustomerId })
+                .eq('id', customer_id);
+        }
+        // Create payment intent
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount,
+            currency: 'eur',
+            customer: stripeCustomerId,
+            metadata: {
+                customer_id,
+                tier,
+            },
+        });
+        res.json({
+            success: true,
+            data: {
+                client_secret: paymentIntent.client_secret,
+                payment_intent_id: paymentIntent.id,
+                amount: paymentIntent.amount,
+                currency: paymentIntent.currency,
+            },
+        });
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            throw errors_1.ErrorFactory.stripeError('Payment intent creation failed', error);
+        }
+        throw error;
+    }
+}));
 // ============ CREATE SUBSCRIPTION ENDPOINT ============
 /**
  * POST /api/payment/create-subscription

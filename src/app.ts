@@ -77,6 +77,9 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+// ============ STATIC FILE SERVING ============
+app.use(express.static('public'));
+
 // ============ REQUEST LOGGING MIDDLEWARE ============
 app.use(
   morgan((tokens, req, res) => {
@@ -137,8 +140,19 @@ const jwtAuth = async (
     }
 
     // Public endpoints (no auth required)
-    const publicPaths = ['/health', '/api/version'];
-    if (publicPaths.includes(req.path)) {
+    const publicPaths = [
+      '/health',
+      '/api/version',
+      '/signup.html',
+      '/payment.html',
+      '/success.html',
+      '/api/payment/config',
+      '/api/payment/create-customer',
+      '/api/payment/create-payment-intent'
+    ];
+
+    // Allow static files and public API endpoints
+    if (publicPaths.includes(req.path) || req.path.match(/\.(html|css|js|png|jpg|jpeg|gif|ico|svg)$/i)) {
       return next();
     }
 
@@ -176,17 +190,18 @@ const jwtAuth = async (
   } catch (error) {
     if (error instanceof Error && 'statusCode' in error) {
       const appError = error as any;
-      return res.status(appError.statusCode || 401).json({
+      res.status(appError.statusCode || 401).json({
         success: false,
         error: appError.code || 'UNAUTHORIZED',
         message: appError.message,
       });
+    } else {
+      res.status(401).json({
+        success: false,
+        error: 'UNAUTHORIZED',
+        message: 'Authentication failed',
+      });
     }
-    return res.status(401).json({
-      success: false,
-      error: 'UNAUTHORIZED',
-      message: 'Authentication failed',
-    });
   }
 };
 
@@ -219,11 +234,12 @@ const customerOwnershipCheck = (
     // Validate ownership
     if (customerId !== requestedId) {
       const error = ErrorFactory.forbidden('Cannot access other customers\' data');
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         error: error.code,
         message: error.message,
       });
+      return;
     }
   }
 
@@ -296,12 +312,16 @@ app.use(errorHandler);
 // ============ PROCESS ERROR HANDLERS ============
 process.on('unhandledRejection', (reason: unknown) => {
   ErrorLogger.log(new Error(`Unhandled Rejection: ${JSON.stringify(reason)}`), {
-    context: 'unhandledRejection',
+    endpoint: 'process',
+    method: 'unhandledRejection',
   });
 });
 
 process.on('uncaughtException', (error: Error) => {
-  ErrorLogger.log(error, { context: 'uncaughtException' });
+  ErrorLogger.log(error, {
+    endpoint: 'process',
+    method: 'uncaughtException',
+  });
   process.exit(1);
 });
 

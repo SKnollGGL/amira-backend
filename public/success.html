@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Success - ARIS Consulting Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            background: #27ae60;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .details {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+            text-align: left;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .detail-row strong {
+            color: #333;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+            text-decoration: none;
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: block;
+            width: 100%;
+        }
+
+        .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .button-secondary {
+            background: #f0f0f0;
+            color: #333;
+            display: inline-block;
+            margin-top: 15px;
+        }
+
+        .button-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .next-steps {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            text-align: left;
+        }
+
+        .next-steps h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .next-steps ol {
+            margin-left: 20px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .next-steps li {
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .success-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 35px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✓</div>
+
+        <h1>Account Created Successfully!</h1>
+        <p id="successMessage">Your account is ready to use. Explore our platform and start automating your sales process.</p>
+
+        <div class="details" id="accountDetails">
+            <div class="detail-row">
+                <span>Account Status:</span>
+                <strong id="accountStatus">Active</strong>
+            </div>
+            <div class="detail-row">
+                <span>Plan Type:</span>
+                <strong id="planType">Free</strong>
+            </div>
+            <div class="detail-row">
+                <span>Access Level:</span>
+                <strong id="accessLevel">Full</strong>
+            </div>
+        </div>
+
+        <button class="button button-primary" id="dashboardButton">Go to Dashboard</button>
+        <a href="/" class="button button-secondary">Back to Home</a>
+
+        <div class="next-steps">
+            <h3>Getting Started</h3>
+            <ol>
+                <li><strong>Log in</strong> to your account with the email you provided</li>
+                <li><strong>Complete your profile</strong> by adding your company details</li>
+                <li><strong>Invite team members</strong> to collaborate with you</li>
+                <li><strong>Set up integrations</strong> with your favorite tools</li>
+                <li><strong>Create your first workflow</strong> and start automating</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Get customer ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const customerId = urlParams.get('customerId');
+        const paymentId = urlParams.get('paymentId');
+
+        // Update page content based on subscription
+        window.addEventListener('load', async () => {
+            try {
+                if (customerId) {
+                    // Fetch customer details
+                    const response = await fetch(`/api/payment/customer/${customerId}`, {
+                        headers: {
+                            'x-customer-id': customerId
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const customer = data.data;
+
+                        // Update page based on tier
+                        if (customer.tier && customer.tier !== 'free') {
+                            document.getElementById('successMessage').textContent = `Your ${customer.tier} plan is now active. You can start using all premium features immediately.`;
+                            document.getElementById('planType').textContent = customer.tier.charAt(0).toUpperCase() + customer.tier.slice(1);
+                        }
+
+                        if (paymentId) {
+                            const detailsDiv = document.querySelector('.details');
+                            const paymentRow = document.createElement('div');
+                            paymentRow.className = 'detail-row';
+                            paymentRow.innerHTML = `<span>Payment ID:</span><strong>${paymentId.substring(0, 20)}...</strong>`;
+                            detailsDiv.appendChild(paymentRow);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load account details:', error);
+            }
+        });
+
+        // Dashboard button
+        document.getElementById('dashboardButton').addEventListener('click', () => {
+            if (customerId) {
+                window.location.href = `/dashboard?customerId=${customerId}`;
+            } else {
+                window.location.href = '/dashboard';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -63,6 +63,8 @@ app.use((0, cors_1.default)({
 // ============ BODY PARSER MIDDLEWARE ============
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ limit: '10mb', extended: true }));
+// ============ STATIC FILE SERVING ============
+app.use(express_1.default.static('public'));
 // ============ REQUEST LOGGING MIDDLEWARE ============
 app.use((0, morgan_1.default)((tokens, req, res) => {
     return JSON.stringify({
@@ -113,8 +115,18 @@ const jwtAuth = async (req, res, next) => {
             token = apiKey;
         }
         // Public endpoints (no auth required)
-        const publicPaths = ['/health', '/api/version'];
-        if (publicPaths.includes(req.path)) {
+        const publicPaths = [
+            '/health',
+            '/api/version',
+            '/signup.html',
+            '/payment.html',
+            '/success.html',
+            '/api/payment/config',
+            '/api/payment/create-customer',
+            '/api/payment/create-payment-intent'
+        ];
+        // Allow static files and public API endpoints
+        if (publicPaths.includes(req.path) || req.path.match(/\.(html|css|js|png|jpg|jpeg|gif|ico|svg)$/i)) {
             return next();
         }
         // All other endpoints require authentication
@@ -148,17 +160,19 @@ const jwtAuth = async (req, res, next) => {
     catch (error) {
         if (error instanceof Error && 'statusCode' in error) {
             const appError = error;
-            return res.status(appError.statusCode || 401).json({
+            res.status(appError.statusCode || 401).json({
                 success: false,
                 error: appError.code || 'UNAUTHORIZED',
                 message: appError.message,
             });
         }
-        return res.status(401).json({
-            success: false,
-            error: 'UNAUTHORIZED',
-            message: 'Authentication failed',
-        });
+        else {
+            res.status(401).json({
+                success: false,
+                error: 'UNAUTHORIZED',
+                message: 'Authentication failed',
+            });
+        }
     }
 };
 // ============ APPLY JWT AUTH TO ALL ROUTES ============
@@ -181,11 +195,12 @@ const customerOwnershipCheck = (req, res, next) => {
         // Validate ownership
         if (customerId !== requestedId) {
             const error = errors_1.ErrorFactory.forbidden('Cannot access other customers\' data');
-            return res.status(403).json({
+            res.status(403).json({
                 success: false,
                 error: error.code,
                 message: error.message,
             });
+            return;
         }
     }
     next();
@@ -238,11 +253,15 @@ app.use(errors_1.errorHandler);
 // ============ PROCESS ERROR HANDLERS ============
 process.on('unhandledRejection', (reason) => {
     errors_1.ErrorLogger.log(new Error(`Unhandled Rejection: ${JSON.stringify(reason)}`), {
-        context: 'unhandledRejection',
+        endpoint: 'process',
+        method: 'unhandledRejection',
     });
 });
 process.on('uncaughtException', (error) => {
-    errors_1.ErrorLogger.log(error, { context: 'uncaughtException' });
+    errors_1.ErrorLogger.log(error, {
+        endpoint: 'process',
+        method: 'uncaughtException',
+    });
     process.exit(1);
 });
 // ============ EXPORT APP ============

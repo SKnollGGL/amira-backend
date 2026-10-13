@@ -131,7 +131,10 @@ router.get(
 /**
  * POST /api/oauth/refresh
  * Refresh an expired OAuth token
+ *
+ * TODO: Implement token refresh logic in OAuthService
  */
+/*
 router.post(
   '/refresh',
   asyncHandler(async (req: Request, res: Response) => {
@@ -162,6 +165,7 @@ router.post(
     });
   })
 );
+*/
 
 // ============ DISCONNECT OAUTH ============
 /**

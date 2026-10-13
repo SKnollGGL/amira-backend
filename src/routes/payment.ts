@@ -4,11 +4,212 @@
  */
 
 import { Router, Request, Response, raw } from 'express';
+import { randomUUID } from 'crypto';
+import Stripe from 'stripe';
 import { StripeService } from '../services/stripe.service';
 import { asyncHandler, ErrorFactory, ErrorLogger, Validators } from '../utils/errors';
 import { CreateSubscriptionRequest } from '../types';
+import { createClient } from '@supabase/supabase-js';
+import { config } from '../config';
 
 const router = Router();
+const supabase = createClient(config.supabase.url, config.supabase.key);
+const stripe = new Stripe(config.stripe.apiKey, {
+  apiVersion: '2023-10-16',
+});
+
+// ============ GET CONFIG ENDPOINT ============
+/**
+ * GET /api/payment/config
+ * Get payment configuration (Stripe publishable key)
+ */
+router.get(
+  '/config',
+  asyncHandler(async (req: Request, res: Response) => {
+    res.json({
+      success: true,
+      data: {
+        publishable_key: config.stripe.publishableKey,
+        environment: config.server.env,
+      },
+    });
+  })
+);
+
+// ============ CREATE CUSTOMER ENDPOINT ============
+/**
+ * POST /api/payment/create-customer
+ * Create a customer record in the database
+ */
+router.post(
+  '/create-customer',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { name, email, phone, tier = 'free', password } = req.body;
+
+    // ============ INPUT VALIDATION ============
+    if (!name || !email || !phone) {
+      throw ErrorFactory.validationError('Name, email, and phone are required');
+    }
+
+    if (!Validators.email(email)) {
+      throw ErrorFactory.validationError('Invalid email format');
+    }
+
+    const customerId = randomUUID();
+
+    try {
+      // Create customer record in database
+      const { data: customer, error } = await supabase
+        .from('customers')
+        .insert({
+          id: customerId,
+          name,
+          email,
+          phone,
+          tier,
+          status: 'active',
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw ErrorFactory.databaseError(error as Error);
+      }
+
+      console.log(`✅ Customer created: ${customerId}`);
+
+      res.json({
+        success: true,
+        data: {
+          customer_id: customerId,
+          name: customer.name,
+          email: customer.email,
+          tier: customer.tier,
+          status: customer.status,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && (error as any).code === 'UNIQUE_VIOLATION') {
+        throw ErrorFactory.validationError('Customer with this email already exists');
+      }
+      throw error;
+    }
+  })
+);
+
+// ============ GET CUSTOMER ENDPOINT ============
+/**
+ * GET /api/payment/customer/:customer_id
+ * Get customer details
+ */
+router.get(
+  '/customer/:customer_id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { customer_id } = req.params;
+
+    if (!Validators.uuid(customer_id)) {
+      throw ErrorFactory.validationError('Invalid customer ID format');
+    }
+
+    const { data: customer, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', customer_id)
+      .single();
+
+    if (error || !customer) {
+      throw ErrorFactory.notFound('Customer not found');
+    }
+
+    res.json({
+      success: true,
+      data: customer,
+    });
+  })
+);
+
+// ============ CREATE PAYMENT INTENT ENDPOINT ============
+/**
+ * POST /api/payment/create-payment-intent
+ * Create a Stripe payment intent for one-time or subscription payment
+ */
+router.post(
+  '/create-payment-intent',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { customer_id, tier, amount } = req.body;
+
+    if (!customer_id || !Validators.uuid(customer_id)) {
+      throw ErrorFactory.validationError('Valid customer ID is required');
+    }
+
+    if (!tier || !['starter', 'professional', 'advanced'].includes(tier)) {
+      throw ErrorFactory.validationError('Valid tier is required');
+    }
+
+    if (!amount || amount <= 0) {
+      throw ErrorFactory.validationError('Valid amount is required');
+    }
+
+    try {
+      // Get customer details
+      const { data: customer } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', customer_id)
+        .single();
+
+      if (!customer) {
+        throw ErrorFactory.notFound('Customer not found');
+      }
+
+      // Create or get Stripe customer
+      let stripeCustomerId = customer.stripe_customer_id;
+      if (!stripeCustomerId) {
+        stripeCustomerId = await StripeService.createCustomer(
+          customer.email,
+          customer.name,
+          customer_id
+        );
+
+        // Update customer record with Stripe ID
+        await supabase
+          .from('customers')
+          .update({ stripe_customer_id: stripeCustomerId })
+          .eq('id', customer_id);
+      }
+
+      // Create payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: 'eur',
+        customer: stripeCustomerId,
+        metadata: {
+          customer_id,
+          tier,
+        },
+      });
+
+      res.json({
+        success: true,
+        data: {
+          client_secret: paymentIntent.client_secret,
+          payment_intent_id: paymentIntent.id,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw ErrorFactory.stripeError(
+          'Payment intent creation failed',
+          error
+        );
+      }
+      throw error;
+    }
+  })
+);
 
 // ============ CREATE SUBSCRIPTION ENDPOINT ============
 /**

@@ -135,7 +135,7 @@ class StripeService {
      */
     static async cancelSubscription(stripeSubscriptionId) {
         try {
-            const subscription = await stripe.subscriptions.del(stripeSubscriptionId);
+            const subscription = await stripe.subscriptions.update(stripeSubscriptionId, { cancel_at_period_end: true });
             // Update database
             await supabase
                 .from('subscriptions')
@@ -170,7 +170,7 @@ class StripeService {
             // Find customer by Stripe subscription ID
             const { data: subscription } = await supabase
                 .from('subscriptions')
-                .select('customer_id')
+                .select('customer_id, stripe_subscription_id')
                 .eq('stripe_subscription_id', invoice.subscription)
                 .single();
             if (!subscription) {
@@ -181,7 +181,7 @@ class StripeService {
                 .from('billing_history')
                 .insert({
                 customer_id: subscription.customer_id,
-                subscription_id: subscription.id,
+                subscription_id: invoice.subscription,
                 amount: (invoice.amount_paid || 0) / 100, // Convert cents to dollars
                 currency: invoice.currency?.toUpperCase() || 'USD',
                 status: 'paid',
@@ -225,7 +225,7 @@ class StripeService {
             // Record failed payment
             await supabase.from('billing_history').insert({
                 customer_id: subscription.customer_id,
-                amount: (invoice.amount || 0) / 100,
+                amount: (invoice.total || 0) / 100,
                 currency: invoice.currency?.toUpperCase() || 'USD',
                 status: 'failed',
                 stripe_invoice_id: invoice.id,

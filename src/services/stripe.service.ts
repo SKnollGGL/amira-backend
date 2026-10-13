@@ -181,8 +181,9 @@ export class StripeService {
     stripeSubscriptionId: string
   ): Promise<Stripe.Subscription> {
     try {
-      const subscription = await stripe.subscriptions.del(
-        stripeSubscriptionId
+      const subscription = await stripe.subscriptions.update(
+        stripeSubscriptionId,
+        { cancel_at_period_end: true }
       );
 
       // Update database
@@ -235,7 +236,7 @@ export class StripeService {
       // Find customer by Stripe subscription ID
       const { data: subscription } = await supabase
         .from('subscriptions')
-        .select('customer_id')
+        .select('customer_id, stripe_subscription_id')
         .eq('stripe_subscription_id', invoice.subscription)
         .single();
 
@@ -247,8 +248,8 @@ export class StripeService {
       const { data: billing, error } = await supabase
         .from('billing_history')
         .insert({
-          customer_id: subscription.customer_id,
-          subscription_id: subscription.id,
+          customer_id: (subscription as any).customer_id,
+          subscription_id: invoice.subscription,
           amount: (invoice.amount_paid || 0) / 100, // Convert cents to dollars
           currency: invoice.currency?.toUpperCase() || 'USD',
           status: 'paid',
@@ -305,7 +306,7 @@ export class StripeService {
       // Record failed payment
       await supabase.from('billing_history').insert({
         customer_id: subscription.customer_id,
-        amount: (invoice.amount || 0) / 100,
+        amount: (invoice.total || 0) / 100,
         currency: invoice.currency?.toUpperCase() || 'USD',
         status: 'failed',
         stripe_invoice_id: invoice.id,

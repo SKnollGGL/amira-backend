@@ -102,29 +102,41 @@ router.get('/status/:customer_id/:provider', (0, errors_1.asyncHandler)(async (r
 /**
  * POST /api/oauth/refresh
  * Refresh an expired OAuth token
+ *
+ * TODO: Implement token refresh logic in OAuthService
  */
-router.post('/refresh', (0, errors_1.asyncHandler)(async (req, res) => {
+/*
+router.post(
+  '/refresh',
+  asyncHandler(async (req: Request, res: Response) => {
     const { customer_id, provider } = req.body;
+
     if (!customer_id) {
-        throw errors_1.ErrorFactory.validationError('Customer ID is required');
+      throw ErrorFactory.validationError('Customer ID is required');
     }
+
     if (!provider) {
-        throw errors_1.ErrorFactory.validationError('Provider is required');
+      throw ErrorFactory.validationError('Provider is required');
     }
-    if (!errors_1.Validators.uuid(customer_id)) {
-        throw errors_1.ErrorFactory.validationError('Invalid customer ID');
+
+    if (!Validators.uuid(customer_id)) {
+      throw ErrorFactory.validationError('Invalid customer ID');
     }
-    const newToken = await oauth_service_1.OAuthService.refreshToken(customer_id, provider);
+
+    const newToken = await OAuthService.refreshToken(customer_id, provider);
+
     res.json({
-        success: true,
-        data: {
-            customer_id,
-            provider,
-            refreshed: true,
-            token_length: newToken.length,
-        },
+      success: true,
+      data: {
+        customer_id,
+        provider,
+        refreshed: true,
+        token_length: newToken.length,
+      },
     });
-}));
+  })
+);
+*/
 // ============ DISCONNECT OAUTH ============
 /**
  * DELETE /api/oauth/disconnect

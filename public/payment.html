@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - ARIS Consulting Platform</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .payment-form,
+        .order-summary {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="tel"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .stripe-element {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: white;
+        }
+
+        .StripeElement--focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .button-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .button-secondary {
+            background: #f0f0f0;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        .button-secondary:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .order-summary h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-item label {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .summary-item strong {
+            color: #333;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #667eea;
+        }
+
+        .summary-total label {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .summary-total strong {
+            font-size: 20px;
+            color: #667eea;
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .payment-method {
+            cursor: pointer;
+        }
+
+        .payment-radio {
+            display: none;
+        }
+
+        .payment-label {
+            display: block;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .payment-label:hover {
+            border-color: #667eea;
+            background-color: #f9f9f9;
+        }
+
+        .payment-radio:checked + .payment-label {
+            border-color: #667eea;
+            background-color: #f0f4ff;
+            font-weight: 600;
+        }
+
+        #stripeCardContainer {
+            display: none;
+        }
+
+        #stripeCardContainer.show {
+            display: block;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .payment-form,
+            .order-summary {
+                padding: 30px 20px;
+            }
+
+            .payment-methods {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="payment-form">
+            <div class="header">
+                <h1>Complete Payment</h1>
+                <p>Secure payment processing</p>
+            </div>
+
+            <form id="paymentForm">
+                <div class="form-group">
+                    <label for="fullName">Full Name *</label>
+                    <input type="text" id="fullName" name="fullName" required readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>Payment Method *</label>
+                    <div class="payment-methods">
+                        <div class="payment-method">
+                            <input type="radio" id="card" name="paymentMethod" value="card" class="payment-radio" checked>
+                            <label for="card" class="payment-label">Credit Card</label>
+                        </div>
+
+                        <div class="payment-method">
+                            <input type="radio" id="paypal" name="paymentMethod" value="paypal" class="payment-radio">
+                            <label for="paypal" class="payment-label">PayPal</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="stripeCardContainer">
+                    <div class="form-group">
+                        <label>Card Details *</label>
+                        <div id="cardElement" class="stripe-element"></div>
+                        <div id="cardError" class="error-message"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="billingAddress">Billing Address *</label>
+                    <input type="text" id="billingAddress" name="billingAddress" required placeholder="123 Main Street">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label for="city">City *</label>
+                        <input type="text" id="city" name="city" required placeholder="New York">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="zip">ZIP Code *</label>
+                        <input type="text" id="zip" name="zip" required placeholder="10001">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <input type="checkbox" id="terms" name="terms" required style="width: auto; margin-right: 8px;">
+                    <label for="terms" style="display: inline; margin: 0;">I agree to the terms and conditions</label>
+                </div>
+
+                <button type="submit" class="button button-primary" id="submitButton">Complete Payment</button>
+                <button type="button" class="button button-secondary" id="backButton">Back to Sign Up</button>
+
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px; color: #666;">Processing payment...</p>
+                </div>
+
+                <div class="error-message" id="formError" style="margin-top: 15px;"></div>
+            </form>
+        </div>
+
+        <div class="order-summary">
+            <h2>Order Summary</h2>
+
+            <div class="summary-item">
+                <label>Plan:</label>
+                <strong id="planName"></strong>
+            </div>
+
+            <div class="summary-item">
+                <label>Billing Period:</label>
+                <strong>Monthly</strong>
+            </div>
+
+            <div class="summary-item">
+                <label>Features:</label>
+                <div id="featuresList" style="text-align: right; line-height: 1.6;"></div>
+            </div>
+
+            <div class="summary-total">
+                <label>Total:</label>
+                <strong id="totalPrice"></strong>
+            </div>
+
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; font-size: 13px; color: #666;">
+                <p style="margin-bottom: 10px;">Your subscription will automatically renew each month. You can cancel anytime from your account settings.</p>
+                <p>Your payment is processed securely by Stripe.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Stripe
+        const stripeKey = 'pk_test_YOUR_PUBLISHABLE_KEY'; // Will be replaced in production
+        let stripe = null;
+        let elements = null;
+        let cardElement = null;
+
+        // Load Stripe on page load
+        window.addEventListener('load', async () => {
+            try {
+                // Get publishable key from backend
+                const configResponse = await fetch('/api/payment/config');
+                if (configResponse.ok) {
+                    const config = await configResponse.json();
+                    stripe = Stripe(config.publishable_key);
+                    elements = stripe.elements();
+                    cardElement = elements.create('card');
+                    cardElement.mount('#cardElement');
+
+                    // Handle real-time validation errors
+                    cardElement.addEventListener('change', (event) => {
+                        const cardError = document.getElementById('cardError');
+                        if (event.error) {
+                            cardError.textContent = event.error.message;
+                            cardError.classList.add('show');
+                        } else {
+                            cardError.classList.remove('show');
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load Stripe:', error);
+            }
+        });
+
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const tier = urlParams.get('tier');
+        const name = urlParams.get('name');
+        const email = urlParams.get('email');
+        const phone = urlParams.get('phone');
+
+        // Plan details
+        const plans = {
+            starter: {
+                name: 'Starter',
+                price: 49.99,
+                currency: 'EUR',
+                features: ['1 Consultant', 'Up to 50 Clients', 'Basic Analytics']
+            },
+            professional: {
+                name: 'Professional',
+                price: 99.99,
+                currency: 'EUR',
+                features: ['3 Consultants', 'Unlimited Clients', 'Advanced Analytics', 'API Access']
+            },
+            advanced: {
+                name: 'Advanced',
+                price: 199.99,
+                currency: 'EUR',
+                features: ['Unlimited Consultants', 'Unlimited Clients', 'White Label', 'Priority Support']
+            }
+        };
+
+        // Populate form
+        document.getElementById('fullName').value = name || '';
+        document.getElementById('email').value = email || '';
+
+        // Populate order summary
+        if (tier && plans[tier]) {
+            const plan = plans[tier];
+            document.getElementById('planName').textContent = plan.name;
+            document.getElementById('totalPrice').textContent = `€${plan.price.toFixed(2)}/month`;
+            document.getElementById('featuresList').innerHTML = plan.features
+                .map(feature => `<div>✓ ${feature}</div>`)
+                .join('');
+        }
+
+        // Payment method selection
+        const paymentMethodRadios = document.querySelectorAll('input[name="paymentMethod"]');
+        const stripeCardContainer = document.getElementById('stripeCardContainer');
+
+        paymentMethodRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'card') {
+                    stripeCardContainer.classList.add('show');
+                } else {
+                    stripeCardContainer.classList.remove('show');
+                }
+            });
+        });
+
+        // Show card container on load
+        stripeCardContainer.classList.add('show');
+
+        // Back button
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.history.back();
+        });
+
+        // Form submission
+        const form = document.getElementById('paymentForm');
+        const submitButton = document.getElementById('submitButton');
+        const loading = document.getElementById('loading');
+        const formError = document.getElementById('formError');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+            try {
+                submitButton.disabled = true;
+                loading.classList.add('show');
+                formError.classList.remove('show');
+
+                // Create customer first
+                const customerResponse = await fetch('/api/payment/create-customer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: document.getElementById('fullName').value,
+                        email: document.getElementById('email').value,
+                        phone: phone,
+                        tier: tier
+                    })
+                });
+
+                if (!customerResponse.ok) {
+                    throw new Error('Failed to create customer');
+                }
+
+                const customerData = await customerResponse.json();
+                const customerId = customerData.customer_id;
+
+                if (paymentMethod === 'card' && stripe && cardElement) {
+                    // Create payment intent
+                    const intentResponse = await fetch('/api/payment/create-payment-intent', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            customer_id: customerId,
+                            tier: tier,
+                            amount: Math.round(plans[tier].price * 100) // Amount in cents
+                        })
+                    });
+
+                    if (!intentResponse.ok) {
+                        throw new Error('Failed to create payment intent');
+                    }
+
+                    const intentData = await intentResponse.json();
+
+                    // Confirm payment with Stripe
+                    const { error, paymentIntent } = await stripe.confirmCardPayment(
+                        intentData.client_secret,
+                        {
+                            payment_method: {
+                                card: cardElement,
+                                billing_details: {
+                                    name: document.getElementById('fullName').value,
+                                    email: document.getElementById('email').value,
+                                    address: {
+                                        line1: document.getElementById('billingAddress').value,
+                                        city: document.getElementById('city').value,
+                                        postal_code: document.getElementById('zip').value,
+                                    }
+                                }
+                            }
+                        }
+                    );
+
+                    if (error) {
+                        throw new Error(error.message);
+                    }
+
+                    if (paymentIntent.status === 'succeeded') {
+                        window.location.href = '/success.html?customerId=' + customerId + '&paymentId=' + paymentIntent.id;
+                    }
+                } else if (paymentMethod === 'paypal') {
+                    // Create PayPal subscription
+                    const paypalResponse = await fetch('/api/payment/create-paypal-subscription', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            customer_id: customerId,
+                            tier: tier,
+                            email: document.getElementById('email').value
+                        })
+                    });
+
+                    if (!paypalResponse.ok) {
+                        throw new Error('Failed to create PayPal subscription');
+                    }
+
+                    const paypalData = await paypalResponse.json();
+                    window.location.href = paypalData.approval_url;
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                submitButton.disabled = false;
+                formError.textContent = error.message || 'Payment processing failed. Please try again.';
+                formError.classList.add('show');
+            }
+        });
+    </script>
+</body>
+</html>

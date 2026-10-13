@@ -29,7 +29,8 @@ const shutdown = (signal) => {
     // Force shutdown after 10 seconds
     setTimeout(() => {
         errors_1.ErrorLogger.log(new Error('Forced shutdown after timeout'), {
-            context: 'gracefulShutdown',
+            endpoint: 'shutdown',
+            method: 'forcedTimeout',
         });
         process.exit(1);
     }, 10000);
@@ -38,7 +39,10 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 // ============ ERROR HANDLING ============
 server.on('error', (error) => {
-    errors_1.ErrorLogger.log(error, { context: 'serverError' });
+    errors_1.ErrorLogger.log(error, {
+        endpoint: 'server',
+        method: 'error',
+    });
     process.exit(1);
 });
 exports.default = server;
