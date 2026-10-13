@@ -105,14 +105,8 @@ export const config = {
 // ============ VALIDATION ============
 export function validateConfig(): void {
   const requiredVars = [
-    'STRIPE_KEY',
-    'STRIPE_WEBHOOK_SECRET',
     'SUPABASE_URL',
     'SUPABASE_KEY',
-    'N8N_API_KEY',
-    'TWILIO_ACCOUNT_SID',
-    'TWILIO_AUTH_TOKEN',
-    'CLAUDE_API_KEY',
   ];
 
   const missing = requiredVars.filter((v) => !process.env[v]);
