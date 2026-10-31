@@ -23,6 +23,7 @@ import { config, isDevelopment, validateConfig } from './config';
 import { errorHandler, asyncHandler, ErrorLogger, ErrorFactory } from './utils/errors';
 import oauthRoutes from './routes/oauth';
 import paymentRoutes from './routes/payment';
+import webhookRoutes from './routes/webhook';
 
 // ============ EXTEND EXPRESS REQUEST WITH AUTH CONTEXT ============
 declare global {
@@ -148,7 +149,11 @@ const jwtAuth = async (
       '/success.html',
       '/api/payment/config',
       '/api/payment/create-customer',
-      '/api/payment/create-payment-intent'
+      '/api/payment/create-payment-intent',
+      '/webhook/n8n-chat',
+      '/webhook/whatsapp',
+      '/webhook/telegram',
+      '/webhook/health'
     ];
 
     // Allow static files and public API endpoints
@@ -248,6 +253,11 @@ const customerOwnershipCheck = (
 
 app.use(customerOwnershipCheck);
 
+// ============ SERVE WEBSITE ROOT ============
+app.get('/', (req: Request, res: Response) => {
+  res.sendFile('index.html', { root: 'public' });
+});
+
 // ============ HEALTH CHECK ENDPOINT (NO AUTH) ============
 app.get('/health', (req: Request, res: Response) => {
   res.json({
@@ -269,6 +279,9 @@ app.get('/api/version', (req: Request, res: Response) => {
     },
   });
 });
+
+// ============ WEBHOOK ROUTES (Public, no auth required) ============
+app.use('/webhook', webhookRoutes);
 
 // ============ PROTECTED ROUTES (Auth required via middleware above) ============
 app.use('/api/oauth', oauthRoutes);
