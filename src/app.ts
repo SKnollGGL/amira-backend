@@ -142,8 +142,10 @@ const jwtAuth = async (
 
     // Public endpoints (no auth required)
     const publicPaths = [
+      '/',
       '/health',
       '/api/version',
+      '/api/stats',
       '/signup.html',
       '/payment.html',
       '/success.html',
